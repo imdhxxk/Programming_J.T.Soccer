@@ -24,7 +24,7 @@ export default function Settings() {
     try {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: key });
-      const result = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: '안녕이라고 한 단어만 답하세요.' });
+      const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: '안녕이라고 한 단어만 답하세요.' });
       const text = result.text.trim();
       setTestResult({ ok: true, msg: `✅ 연결 성공! 응답: "${text}"` });
     } catch (e) {
@@ -37,7 +37,7 @@ export default function Settings() {
       } else if (msg.includes('403') || msg.includes('PERMISSION_DENIED')) {
         detail = '❌ 권한 없음 (403) — 이 키로는 Gemini API를 사용할 수 없습니다.';
       } else if (msg.includes('404') || msg.includes('not found')) {
-        detail = '❌ 모델 없음 (404) — gemini-2.0-flash 모델에 접근할 수 없습니다.';
+        detail = '❌ 모델 없음 (404) — gemini-1.5-flash 모델에 접근할 수 없습니다.';
       }
       setTestResult({ ok: false, msg: detail });
       console.error('[API test]', msg);
