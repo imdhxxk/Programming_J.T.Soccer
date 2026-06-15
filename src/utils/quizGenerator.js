@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import Groq from 'groq-sdk';
 import { getFallbackQuiz, getFallbackIntro } from './quizBank';
 
 // ── 레벨별 학습 단계 정의 ────────────────────────────────────────
@@ -146,11 +146,11 @@ JSON 형식 (유형별):
 
 // ── 클라이언트 생성 ──────────────────────────────────────────────
 function makeClient(apiKey) {
-  return new GoogleGenAI({ apiKey });
+  return new Groq({ apiKey, dangerouslyAllowBrowser: true });
 }
 
 export function resolveApiKey(settingsKey) {
-  return settingsKey || import.meta.env.VITE_GEMINI_API_KEY || '';
+  return settingsKey || import.meta.env.VITE_GROQ_API_KEY || '';
 }
 
 // ── 학습 인트로 카드 생성 (주제별) ──────────────────────────────
@@ -181,9 +181,12 @@ ${topicScope}
 JSON만 출력 (코드 블록 없이):`;
 
   try {
-    const ai = makeClient(apiKey);
-    const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: prompt });
-    const text = result.text.trim();
+    const groq = makeClient(apiKey);
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const text = completion.choices[0].message.content.trim();
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return getFallbackIntro(topic);
     return JSON.parse(match[0]);
@@ -251,9 +254,12 @@ ${FORMAT_GUIDE}
 
 JSON 배열 출력:`;
 
-  const ai = makeClient(apiKey);
-  const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: prompt });
-  const text = result.text.trim();
+  const groq = makeClient(apiKey);
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  const text = completion.choices[0].message.content.trim();
 
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) throw new Error('AI 응답을 JSON으로 파싱하지 못했습니다. 다시 시도해주세요.');

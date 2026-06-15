@@ -16,7 +16,7 @@ export default function Home({ user }) {
 
   const streakColor = user.streak >= 7 ? '#f59e0b' : user.streak >= 3 ? '#ef4444' : '#22c55e';
   const { apiKey } = getSettings();
-  const aiEnabled = !!(apiKey || import.meta.env.VITE_GEMINI_API_KEY);
+  const aiEnabled = !!(apiKey || import.meta.env.VITE_GROQ_API_KEY);
 
   return (
     <div className="page">
@@ -28,7 +28,7 @@ export default function Home({ user }) {
       )}
       {aiEnabled && (
         <div className="ai-notice active">
-          🤖 AI 문제 생성 활성화 ✅ — Gemini가 레벨에 맞는 문제를 자동 생성합니다
+          🤖 AI 문제 생성 활성화 ✅ — Groq AI가 레벨에 맞는 문제를 자동 생성합니다
         </div>
       )}
 

@@ -22,22 +22,23 @@ export default function Settings() {
     setTesting(true);
     setTestResult(null);
     try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: key });
-      const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: '안녕이라고 한 단어만 답하세요.' });
-      const text = result.text.trim();
+      const Groq = (await import('groq-sdk')).default;
+      const groq = new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: '안녕이라고 한 단어만 답하세요.' }],
+      });
+      const text = completion.choices[0].message.content.trim();
       setTestResult({ ok: true, msg: `✅ 연결 성공! 응답: "${text}"` });
     } catch (e) {
       const msg = e?.message || String(e);
       let detail = msg;
-      if (msg.includes('401') || msg.includes('API_KEY_INVALID') || msg.includes('invalid')) {
-        detail = '❌ 키 인증 실패 (401) — 잘못된 API 키입니다. Google AI Studio에서 새 키를 발급받으세요.';
-      } else if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-        detail = '⚠️ 할당량 초과 (429) — 무료 티어 한도 초과. Google Cloud 콘솔에서 결제 등록 필요.';
-      } else if (msg.includes('403') || msg.includes('PERMISSION_DENIED')) {
-        detail = '❌ 권한 없음 (403) — 이 키로는 Gemini API를 사용할 수 없습니다.';
-      } else if (msg.includes('404') || msg.includes('not found')) {
-        detail = '❌ 모델 없음 (404) — gemini-1.5-flash 모델에 접근할 수 없습니다.';
+      if (msg.includes('401') || msg.includes('invalid_api_key') || msg.includes('Invalid API Key')) {
+        detail = '❌ 키 인증 실패 (401) — 잘못된 API 키입니다. Groq Console에서 새 키를 발급받으세요.';
+      } else if (msg.includes('429') || msg.includes('rate_limit')) {
+        detail = '⚠️ 요청 한도 초과 (429) — 잠시 후 다시 시도하세요.';
+      } else if (msg.includes('403')) {
+        detail = '❌ 권한 없음 (403) — 이 키로는 Groq API를 사용할 수 없습니다.';
       }
       setTestResult({ ok: false, msg: detail });
       console.error('[API test]', msg);
@@ -71,17 +72,17 @@ export default function Settings() {
       <div className="settings-card">
         <h2 className="settings-section-title">🤖 AI 문제 생성</h2>
         <p className="settings-desc">
-          Google Gemini API 키를 설정하면 AI가 레벨에 맞는 문제를 자동 생성합니다.<br />
-          <strong style={{color: 'var(--color-primary)'}}>방법 1</strong>: 프로젝트 루트의 <code style={{background:'var(--bg-secondary)',padding:'2px 6px',borderRadius:'4px'}}>.env.local</code> 파일에 <code style={{background:'var(--bg-secondary)',padding:'2px 6px',borderRadius:'4px'}}>VITE_GEMINI_API_KEY=AIza...</code> 입력 후 서버 재시작<br />
+          Groq API 키를 설정하면 AI가 레벨에 맞는 문제를 자동 생성합니다.<br />
+          <strong style={{color: 'var(--color-primary)'}}>방법 1</strong>: 프로젝트 루트의 <code style={{background:'var(--bg-secondary)',padding:'2px 6px',borderRadius:'4px'}}>.env.local</code> 파일에 <code style={{background:'var(--bg-secondary)',padding:'2px 6px',borderRadius:'4px'}}>VITE_GROQ_API_KEY=gsk_...</code> 입력 후 서버 재시작<br />
           <strong style={{color: 'var(--color-blue)'}}>방법 2</strong>: 아래 입력창에 직접 입력 (브라우저에 저장)
         </p>
         <div className="settings-field">
-          <label className="settings-label">Gemini API Key</label>
+          <label className="settings-label">Groq API Key</label>
           <div className="api-key-input-row">
             <input
               type={showKey ? 'text' : 'password'}
               className="settings-input"
-              placeholder="AIza..."
+              placeholder="gsk_..."
               value={settings.apiKey}
               onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
             />
