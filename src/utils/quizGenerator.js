@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { getFallbackQuiz, getFallbackIntro } from './quizBank';
 
 // ── 레벨별 학습 단계 정의 ────────────────────────────────────────
@@ -146,7 +146,7 @@ JSON 형식 (유형별):
 
 // ── 클라이언트 생성 ──────────────────────────────────────────────
 function makeClient(apiKey) {
-  return new GoogleGenerativeAI(apiKey);
+  return new GoogleGenAI({ apiKey });
 }
 
 export function resolveApiKey(settingsKey) {
@@ -181,10 +181,9 @@ ${topicScope}
 JSON만 출력 (코드 블록 없이):`;
 
   try {
-    const genAI = makeClient(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const ai = makeClient(apiKey);
+    const result = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: prompt });
+    const text = result.text.trim();
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return getFallbackIntro(topic);
     return JSON.parse(match[0]);
@@ -252,10 +251,9 @@ ${FORMAT_GUIDE}
 
 JSON 배열 출력:`;
 
-  const genAI = makeClient(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
+  const ai = makeClient(apiKey);
+  const result = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: prompt });
+  const text = result.text.trim();
 
   const match = text.match(/\[[\s\S]*\]/);
   if (!match) throw new Error('AI 응답을 JSON으로 파싱하지 못했습니다. 다시 시도해주세요.');

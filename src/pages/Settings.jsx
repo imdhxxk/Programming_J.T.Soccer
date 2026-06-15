@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getSettings, saveSettings, clearAllData } from '../utils/storage';
+import { resolveApiKey } from '../utils/quizGenerator';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 
@@ -9,6 +10,41 @@ export default function Settings() {
   const [settings, setSettings] = useState(() => getSettings());
   const [showKey, setShowKey] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [testResult, setTestResult] = useState(null); // { ok, msg }
+  const [testing, setTesting] = useState(false);
+
+  async function handleTest() {
+    const key = resolveApiKey(settings.apiKey);
+    if (!key) {
+      setTestResult({ ok: false, msg: 'API 키가 없습니다. 입력 후 저장하거나 .env.local을 확인하세요.' });
+      return;
+    }
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: key });
+      const result = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: '안녕이라고 한 단어만 답하세요.' });
+      const text = result.text.trim();
+      setTestResult({ ok: true, msg: `✅ 연결 성공! 응답: "${text}"` });
+    } catch (e) {
+      const msg = e?.message || String(e);
+      let detail = msg;
+      if (msg.includes('401') || msg.includes('API_KEY_INVALID') || msg.includes('invalid')) {
+        detail = '❌ 키 인증 실패 (401) — 잘못된 API 키입니다. Google AI Studio에서 새 키를 발급받으세요.';
+      } else if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+        detail = '⚠️ 할당량 초과 (429) — 무료 티어 한도 초과. Google Cloud 콘솔에서 결제 등록 필요.';
+      } else if (msg.includes('403') || msg.includes('PERMISSION_DENIED')) {
+        detail = '❌ 권한 없음 (403) — 이 키로는 Gemini API를 사용할 수 없습니다.';
+      } else if (msg.includes('404') || msg.includes('not found')) {
+        detail = '❌ 모델 없음 (404) — gemini-2.0-flash 모델에 접근할 수 없습니다.';
+      }
+      setTestResult({ ok: false, msg: detail });
+      console.error('[API test]', msg);
+    } finally {
+      setTesting(false);
+    }
+  }
 
   function handleSave() {
     saveSettings(settings);
@@ -57,7 +93,26 @@ export default function Settings() {
         <div className="settings-hint">
           💡 API 키는 이 기기의 브라우저(LocalStorage)에만 저장되며 외부로 전송되지 않습니다.
         </div>
-        <button className="btn-primary" onClick={handleSave}>저장</button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn-primary" onClick={handleSave}>저장</button>
+          <button className="btn-outline" onClick={handleTest} disabled={testing}>
+            {testing ? '테스트 중...' : '🔬 API 키 테스트'}
+          </button>
+        </div>
+        {testResult && (
+          <div style={{
+            marginTop: '12px',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            background: testResult.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1px solid ${testResult.ok ? '#22c55e' : '#ef4444'}`,
+            color: testResult.ok ? '#22c55e' : '#ef4444',
+            fontSize: '0.88rem',
+            wordBreak: 'break-all',
+          }}>
+            {testResult.msg}
+          </div>
+        )}
       </div>
 
       {/* 데이터 관리 */}
